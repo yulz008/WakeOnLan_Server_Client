@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Wake Up PC</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+
+<body>
+    <h1>Control Panel</h1>
+    <button onclick="wake()">Wake Up PC</button>
+
+    <script>
+        function wake() {
+            fetch('/wake', { method: 'POST' });
+        }
+
+        const socket = io();
+    </script>
+</body>
+
+</html>

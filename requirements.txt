@@ -1,0 +1,9 @@
+
+# server, Uncomment when installing as server
+flask
+flask-socketio
+eventlet  
+
+# client, Uncomment when installing as client
+# requests
+# websocket-client
