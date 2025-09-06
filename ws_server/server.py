@@ -27,7 +27,7 @@ def disconnect():
 def handle_wol_status(data):
     print("WOL Status from client:", data)
     # Forward status updates to the UI
-    socketio.emit('wol_status_update', data)
+    socketio.emit('wol_status', data)
 
 
 if __name__ == '__main__':

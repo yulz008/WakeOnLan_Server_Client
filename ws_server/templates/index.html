@@ -429,7 +429,7 @@
         });
 
         // Listen for WOL status updates
-        socket.on('wol_status_update', function (data) {
+        socket.on('wol_status', function (data) {
             console.log("WOL status update:", data);
 
             if (data.status === 'magic_packet_sent') {
