@@ -23,6 +23,13 @@ def connect():
 def disconnect():
     print("Client disconnected")
 
+@socketio.on('wol_status')
+def handle_wol_status(data):
+    print("WOL Status from client:", data)
+    # Forward status updates to the UI
+    socketio.emit('wol_status_update', data)
+
+
 if __name__ == '__main__':
     print("Flask-SocketIO server is running at http://localhost:5000")
     socketio.run(app, host='0.0.0.0', port=5000)

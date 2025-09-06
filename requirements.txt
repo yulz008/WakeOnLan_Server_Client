@@ -7,3 +7,4 @@ eventlet
 # client, Uncomment when installing as client
 # requests
 # websocket-client
+# python-socketio[client]

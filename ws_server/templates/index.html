@@ -428,6 +428,33 @@
             addLog(`Command received: ${data.cmd}`, 'info');
         });
 
+        // Listen for WOL status updates
+        socket.on('wol_status_update', function (data) {
+            console.log("WOL status update:", data);
+
+            if (data.status === 'magic_packet_sent') {
+                wakeStatus.textContent = 'Magic packet sent';
+                wakeStatus.className = 'info';
+                addLog(`Magic packet sent to ${data.mac_address}`, 'info');
+            }
+            else if (data.status === 'device_awake') {
+                wakeStatus.textContent = 'Device is awake';
+                wakeStatus.className = 'success';
+                addLog(`${data.ip_address} is responding to ping`, 'success');
+            }
+            else if (data.status === 'device_not_responding') {
+                wakeStatus.textContent = 'Device not responding';
+                wakeStatus.className = 'error';
+                addLog(`${data.ip_address} did not respond after attempts`, 'error');
+            }
+            else if (data.status === 'error') {
+                wakeStatus.textContent = 'Error';
+                wakeStatus.className = 'error';
+                addLog(`Error: ${data.message}`, 'error');
+            }
+        });
+
+
         // Wake function
         function wake() {
             // Disable button to prevent multiple clicks
