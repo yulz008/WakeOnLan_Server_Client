@@ -1,21 +1,557 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>Wake Up PC</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC Wake Control</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --success: #06d6a0;
+            --warning: #ffd166;
+            --danger: #ef476f;
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: var(--light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #4361ee, #06d6a0);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .subtitle {
+            color: var(--gray);
+            margin-bottom: 20px;
+        }
+
+        .status-panel {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .status-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .connected {
+            background: var(--success);
+        }
+
+        .status-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-label {
+            color: var(--gray);
+        }
+
+        .wake-button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(to right, var(--primary), #3a0ca3);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .wake-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+        }
+
+        .wake-button:active {
+            transform: translateY(0);
+        }
+
+        .wake-button:disabled {
+            background: var(--gray);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .feedback-panel {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .feedback-header {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feedback-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .feedback-option {
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .feedback-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .feedback-option.selected {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .feedback-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            margin-bottom: 15px;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .feedback-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .submit-feedback {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: var(--success);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .submit-feedback:hover {
+            background: #05c28f;
+        }
+
+        .activity-log {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-header {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .log-item {
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-time {
+            color: var(--gray);
+            font-size: 0.8rem;
+        }
+
+        .success {
+            color: var(--success);
+        }
+
+        .warning {
+            color: var(--warning);
+        }
+
+        .error {
+            color: var(--danger);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .feedback-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Control Panel</h1>
-    <button onclick="wake()">Wake Up PC</button>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-desktop"></i> PC Wake Control</h1>
+            <p class="subtitle">Remotely wake up your computer and provide feedback</p>
+        </header>
+
+        <div class="status-panel">
+            <div class="status-header">
+                <div class="status-title">System Status</div>
+                <div class="connection-status">
+                    <span>Connected</span>
+                    <div class="status-indicator" id="connectionIndicator"></div>
+                </div>
+            </div>
+            <div class="status-content">
+                <div class="status-item">
+                    <span class="status-label">Last Wake Attempt:</span>
+                    <span id="lastWakeTime">Never</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Target Device:</span>
+                    <span id="targetDevice">PC-Office</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Status:</span>
+                    <span id="wakeStatus">Idle</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="wake-button" id="wakeButton" onclick="wake()">
+            <i class="fas fa-power-off"></i> Wake Up PC
+        </button>
+
+        <div class="feedback-panel" id="feedbackPanel">
+            <div class="feedback-header">
+                <span>How did it work?</span>
+                <i class="fas fa-times" style="cursor: pointer;" onclick="closeFeedback()"></i>
+            </div>
+            <div class="feedback-options">
+                <div class="feedback-option" onclick="selectFeedback(this, 'success')">
+                    <i class="fas fa-check-circle success"></i>
+                    <div>Worked</div>
+                </div>
+                <div class="feedback-option" onclick="selectFeedback(this, 'partial')">
+                    <i class="fas fa-exclamation-circle warning"></i>
+                    <div>Partial</div>
+                </div>
+                <div class="feedback-option" onclick="selectFeedback(this, 'failed')">
+                    <i class="fas fa-times-circle error"></i>
+                    <div>Failed</div>
+                </div>
+            </div>
+            <textarea class="feedback-input" id="feedbackInput"
+                placeholder="Optional: Provide additional details about the wake-up result..."></textarea>
+            <button class="submit-feedback" onclick="submitFeedback()">
+                Submit Feedback
+            </button>
+        </div>
+
+        <div class="activity-log">
+            <div class="log-header">
+                <span>Activity Log</span>
+                <i class="fas fa-history"></i>
+            </div>
+            <div class="log-content" id="logContent">
+                <div class="log-item">
+                    <i class="fas fa-info-circle"></i>
+                    <span>System initialized. Ready to wake up device.</span>
+                    <span class="log-time" id="currentTime"></span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
+        // Initialize Socket.io connection
+        const socket = io();
+        const connectionIndicator = document.getElementById('connectionIndicator');
+        const wakeButton = document.getElementById('wakeButton');
+        const feedbackPanel = document.getElementById('feedbackPanel');
+        const logContent = document.getElementById('logContent');
+        const lastWakeTime = document.getElementById('lastWakeTime');
+        const wakeStatus = document.getElementById('wakeStatus');
+        let feedbackSelected = null;
+
+        // Set current time
+        document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
+
+        // Socket event handlers
+        socket.on('connect', function () {
+            connectionIndicator.classList.add('connected');
+            addLog('Connected to server', 'success');
+        });
+
+        socket.on('disconnect', function () {
+            connectionIndicator.classList.remove('connected');
+            addLog('Disconnected from server', 'error');
+        });
+
+        socket.on('command', function (data) {
+            addLog(`Command received: ${data.cmd}`, 'info');
+        });
+
+        // Wake function
         function wake() {
-            fetch('/wake', { method: 'POST' });
+            // Disable button to prevent multiple clicks
+            wakeButton.disabled = true;
+            wakeButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Waking Up...';
+
+            // Update status
+            wakeStatus.textContent = 'Waking up...';
+            wakeStatus.className = 'warning';
+
+            // Add to log
+            addLog('Sending wake command to PC-Office...', 'info');
+
+            // Send wake command
+            fetch('/wake', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'sent') {
+                        addLog('Wake command sent successfully', 'success');
+
+                        // Update last wake time
+                        const now = new Date();
+                        lastWakeTime.textContent = now.toLocaleTimeString();
+
+                        // Enable button after 10 seconds
+                        setTimeout(() => {
+                            wakeButton.disabled = false;
+                            wakeButton.innerHTML = '<i class="fas fa-power-off"></i> Wake Up PC';
+
+                            // Show feedback panel
+                            feedbackPanel.style.display = 'block';
+                            feedbackPanel.classList.add('fade-in');
+
+                            // Add to log
+                            addLog('Please provide feedback on wake result', 'info');
+
+                        }, 10000);
+                    }
+                })
+                .catch(error => {
+                    addLog('Error sending wake command: ' + error, 'error');
+                    wakeStatus.textContent = 'Error';
+                    wakeStatus.className = 'error';
+
+                    // Enable button again on error
+                    setTimeout(() => {
+                        wakeButton.disabled = false;
+                        wakeButton.innerHTML = '<i class="fas fa-power-off"></i> Wake Up PC';
+                    }, 3000);
+                });
         }
 
-        const socket = io();
+        // Feedback functions
+        function selectFeedback(element, type) {
+            // Remove previous selections
+            document.querySelectorAll('.feedback-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+
+            // Select new option
+            element.classList.add('selected');
+            feedbackSelected = type;
+        }
+
+        function submitFeedback() {
+            if (!feedbackSelected) {
+                addLog('Please select a feedback option first', 'warning');
+                return;
+            }
+
+            const feedbackText = document.getElementById('feedbackInput').value;
+
+            // In a real application, you would send this to your server
+            addLog('Feedback submitted: ' + feedbackSelected, 'success');
+
+            // Reset feedback form
+            document.querySelectorAll('.feedback-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.getElementById('feedbackInput').value = '';
+            feedbackPanel.style.display = 'none';
+            feedbackSelected = null;
+
+            // Update status
+            wakeStatus.textContent = 'Feedback received';
+            setTimeout(() => {
+                wakeStatus.textContent = 'Idle';
+                wakeStatus.className = '';
+            }, 3000);
+        }
+
+        function closeFeedback() {
+            feedbackPanel.style.display = 'none';
+            addLog('Feedback cancelled', 'info');
+        }
+
+        // Log function
+        function addLog(message, type = 'info') {
+            const logItem = document.createElement('div');
+            logItem.className = 'log-item';
+
+            let icon = 'fas fa-info-circle';
+            if (type === 'success') icon = 'fas fa-check-circle success';
+            if (type === 'error') icon = 'fas fa-times-circle error';
+            if (type === 'warning') icon = 'fas fa-exclamation-circle warning';
+
+            logItem.innerHTML = `
+                <i class="${icon}"></i>
+                <span>${message}</span>
+                <span class="log-time">${new Date().toLocaleTimeString()}</span>
+            `;
+
+            logContent.prepend(logItem);
+
+            // Limit log items to 10
+            if (logContent.children.length > 10) {
+                logContent.removeChild(logContent.lastChild);
+            }
+        }
+
+        // Initial animation for the wake button
+        setTimeout(() => {
+            wakeButton.classList.add('pulse');
+        }, 1000);
     </script>
 </body>
 
